@@ -1,108 +1,149 @@
-﻿using CP2.API.Application.Interfaces;
-using CP2.API.Application.Dtos;
+﻿using CP2.API.Application.Dtos;
+using CP2.API.Application.Interfaces;
 using CP2.API.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
-using System.Net;
 using Swashbuckle.AspNetCore.Annotations;
+using System.Net;
 
-namespace CP2.API.Presentation.Controllers
+[Route("api/[controller]")]
+[ApiController]
+public class VendedorController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class VendedorController : ControllerBase
+    private readonly IVendedorApplicationService _applicationService;
+
+    public VendedorController(IVendedorApplicationService applicationService)
     {
-        private readonly IVendedorApplicationService _applicationService;
+        _applicationService = applicationService;
+    }
 
-        public VendedorController(IVendedorApplicationService applicationService)
+    /// <summary>
+    /// Lista todos os vendedores cadastrados.
+    /// </summary>
+    /// <returns>Lista de vendedores</returns>
+    [HttpGet]
+    [SwaggerOperation(Summary = "Lista todos os vendedores", Description = "Este endpoint retorna uma lista completa de todos os vendedores cadastrados.")]
+    [SwaggerResponse(200, "Lista de vendedores carregada com sucesso", typeof(VendedorEntity))]
+    [SwaggerResponse(204, "Nenhum vendedor encontrado")]
+    [SwaggerResponse(404, "Falha ao localizar vendedores")]
+    [Produces(typeof(VendedorEntity))]
+    public IActionResult Get()
+    {
+        try
         {
-            _applicationService = applicationService;
+            var vendedores = _applicationService.ObterTodosVendedores();
+
+            if (vendedores is null)
+                return NoContent();
+
+            return Ok(vendedores);
         }
-
-
-        [HttpGet]
-        [SwaggerOperation(Summary = "Lista todos os vendedores", Description = "Este endpoint retorna uma lista completa de todos os vendedores cadastrados.")]
-        [Produces<IEnumerable<VendedorEntity>>]
-        public IActionResult Get()
+        catch (Exception)
         {
-            var objModel = _applicationService.ObterTodosVendedores();
-
-            if (objModel is not null)
-                return Ok(objModel);
-
-            return BadRequest("Não foi possivel obter os dados");
+            return BadRequest("Não foi possível obter os dados.");
         }
+    }
 
+    /// <summary>
+    /// Obtém um vendedor pelo ID.
+    /// </summary>
+    /// <param name="id">ID do vendedor</param>
+    /// <returns>Vendedor encontrado</returns>
+    [HttpGet("{id}")]
+    [SwaggerOperation(Summary = "Obtém um vendedor pelo ID", Description = "Este endpoint retorna um vendedor específico pelo ID.")]
+    [SwaggerResponse(200, "Vendedor encontrado com sucesso")]
+    [SwaggerResponse(204, "Vendedor não encontrado")]
+    [SwaggerResponse(404, "Falha em obter o vendedor solicitado")]
+    [Produces(typeof(VendedorEntity))]
+    public IActionResult GetPorId(int id)
+    {
+        var vendedor = _applicationService.ObterVendedorPorId(id);
 
-        [HttpGet("{id}")]
-        [Produces<VendedorEntity>]
-        public IActionResult GetPorId(int id)
+        if (vendedor is not null)
+            return Ok(vendedor);
+
+        return BadRequest("Não foi possível obter os dados do vendedor informado.");
+    }
+
+    /// <summary>
+    /// Adiciona um novo vendedor.
+    /// </summary>
+    /// <param name="entity">Dados do vendedor a ser adicionado</param>
+    /// <returns>Vendedor adicionado</returns>
+    [HttpPost]
+    [SwaggerOperation(Summary = "Adiciona um novo vendedor", Description = "Este endpoint adiciona um novo vendedor ao sistema.")]
+    [SwaggerResponse(200, "Vendedor cadastrado com sucesso")]
+    [SwaggerResponse(404, "Falha ao cadastrar novo vendedor")]
+    [Produces(typeof(VendedorEntity))]
+    public IActionResult Post([FromBody] VendedorDto entity)
+    {
+        try
         {
-            var objModel = _applicationService.ObterVendedorPorId(id);
+            var vendedor = _applicationService.SalvarDadosVendedor(entity);
 
-            if (objModel is not null)
-                return Ok(objModel);
+            if (vendedor is not null)
+                return Ok(vendedor);
 
-            return BadRequest("Não foi possivel obter os dados");
+            return BadRequest("Não foi possível salvar os dados do vendedor.");
         }
-
-
-        [HttpPost]
-        [Produces<VendedorEntity>]
-        public IActionResult Post([FromBody] VendedorDto entity)
+        catch (Exception ex)
         {
-            try
+            return BadRequest(new
             {
-                var objModel = _applicationService.SalvarDadosVendedor(entity);
-
-                if (objModel is not null)
-                    return Ok(objModel);
-
-                return BadRequest("Não foi possivel salvar os dados");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new
-                {
-                    Error = ex.Message,
-                    status = HttpStatusCode.BadRequest,
-                });
-            }
+                Error = ex.Message,
+                status = HttpStatusCode.BadRequest,
+            });
         }
+    }
 
-        [HttpPut("{id}")]
-        [Produces<VendedorEntity>]
-        public IActionResult Put(int id, [FromBody] VendedorDto entity)
+    /// <summary>
+    /// Edita os dados de um vendedor.
+    /// </summary>
+    /// <param name="id">ID do vendedor</param>
+    /// <param name="entity">Dados atualizados do vendedor</param>
+    /// <returns>Vendedor atualizado</returns>
+    [HttpPut("{id}")]
+    [SwaggerOperation(Summary = "Edita os dados de um vendedor", Description = "Este endpoint atualiza as informações de um vendedor específico.")]
+    [SwaggerResponse(200, "Cadastro atualizado com sucesso")]
+    [SwaggerResponse(204, "Vendedor não encontrado")]
+    [SwaggerResponse(404, "Falha ao atualizar cadastro do vendedor solicitado")]
+    [Produces(typeof(VendedorEntity))]
+    public IActionResult Put(int id, [FromBody] VendedorDto entity)
+    {
+        try
         {
-            try
-            {
-                var objModel = _applicationService.EditarDadosVendedor(id, entity);
+            var vendedor = _applicationService.EditarDadosVendedor(id, entity);
 
-                if (objModel is not null)
-                    return Ok(objModel);
-
-                return BadRequest("Não foi possivel salvar os dados");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new
-                {
-                    Error = ex.Message,
-                    status = HttpStatusCode.BadRequest,
-                });
-            }
+            return Ok(vendedor);
         }
-
-
-        [HttpDelete("{id}")]
-        [Produces<VendedorEntity>]
-        public IActionResult Delete(int id)
+        catch (Exception ex)
         {
-            var objModel = _applicationService.DeletarDadosVendedor(id);
+            return BadRequest(ex.Message);
+        }
+    }
 
-            if (objModel is not null)
-                return Ok(objModel);
+    /// <summary>
+    /// Deleta um vendedor pelo ID.
+    /// </summary>
+    /// <param name="id">ID do vendedor a ser deletado</param>
+    /// <returns>Vendedor deletado</returns>
+    [HttpDelete("{id}")]
+    [SwaggerOperation(Summary = "Deleta um vendedor pelo ID", Description = "Este endpoint deleta um vendedor específico pelo seu identificador.")]
+    [SwaggerResponse(200, "Cadastro deletado com sucesso")]
+    [SwaggerResponse(204, "Vendedor não encontrado")]
+    [SwaggerResponse(404, "Falha ao deletar o vendedor solicitado")]
+    [SwaggerResponse(500, "Internal Server Error")]
+    [Produces(typeof(VendedorEntity))]
+    public IActionResult Delete(int id)
+    {
+        try
+        {
+            var vendedor = _applicationService.DeletarDadosVendedor(id);
 
-            return BadRequest("Não foi possivel deletar os dados");
+            return Ok(vendedor);
+        }
+        catch (Exception)
+        {
+            return BadRequest("Não foi possível deletar os dados.");
         }
     }
 }

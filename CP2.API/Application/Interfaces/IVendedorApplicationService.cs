@@ -5,5 +5,10 @@ namespace CP2.API.Application.Interfaces
 {
     public interface IVendedorApplicationService
     {
+        IEnumerable<VendedorEntity>? ObterTodosVendedores();
+        VendedorEntity? ObterVendedorPorId(int id);
+        VendedorEntity? SalvarDadosVendedor(VendedorDto entity);
+        VendedorEntity? EditarDadosVendedor(int id, VendedorDto entity);
+        VendedorEntity? DeletarDadosVendedor(int id);
     }
 }
